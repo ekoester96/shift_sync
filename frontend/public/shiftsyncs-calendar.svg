@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="shiftsyncs-bg" x1="14" y1="10" x2="50" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b91c1c" />
+      <stop offset="1" stop-color="#dc2626" />
+    </linearGradient>
+  </defs>
+  <rect x="6" y="6" width="52" height="52" rx="14" fill="url(#shiftsyncs-bg)" />
+  <rect x="7" y="7" width="50" height="50" rx="13" stroke="#7f1d1d" stroke-opacity=".38" stroke-width="2" />
+  <path d="M20 15v8" stroke="#fff" stroke-width="4" stroke-linecap="round" />
+  <path d="M44 15v8" stroke="#fff" stroke-width="4" stroke-linecap="round" />
+  <rect x="15" y="19" width="34" height="30" rx="8" stroke="#fff" stroke-width="4" />
+  <path d="M15 28h34" stroke="#fff" stroke-width="4" stroke-linecap="round" />
+  <circle cx="24" cy="37" r="2.6" fill="#fff" />
+  <circle cx="32" cy="37" r="2.6" fill="#fff" />
+  <circle cx="40" cy="37" r="2.6" fill="#fff" />
+  <circle cx="24" cy="44" r="2.6" fill="#fff" />
+  <circle cx="32" cy="44" r="2.6" fill="#fff" />
+</svg>

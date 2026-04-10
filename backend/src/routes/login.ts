@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import '../config/env';
 import pool from '../dbConfig';
 
 const router = Router();
@@ -18,43 +19,14 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     // ── Try 0: Ops user ──────────────────────────────────────────
     const opsResult = await pool.query(
-      `SELECT ops_user_id, username, password_hash, name, email
+      `SELECT ops_user_id
        FROM ops_users
        WHERE username = $1 AND is_active = true`,
       [username]
     );
 
     if (opsResult.rows.length > 0) {
-      const ops = opsResult.rows[0];
-      const opsMatch = await bcrypt.compare(password, ops.password_hash);
-
-      if (!opsMatch) {
-        res.status(401).json({ error: 'Invalid username or password.' });
-        return;
-      }
-
-      await pool.query(
-        'UPDATE ops_users SET last_login = NOW() WHERE ops_user_id = $1',
-        [ops.ops_user_id]
-      );
-
-      const token = jwt.sign(
-        {
-          type: 'ops',
-          ops_user_id: ops.ops_user_id,
-          username: ops.username,
-          name: ops.name,
-          role: 'ops',
-        },
-        JWT_SECRET,
-        { expiresIn: '8h' }
-      );
-
-      res.json({
-        token,
-        role: 'ops',
-        name: ops.name,
-      });
+      res.status(403).json({ error: 'Ops users must sign in at /ops.' });
       return;
     }
 

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import "../config/env";
 
 export const OPS_JWT_SECRET: string = process.env.OPS_JWT_SECRET || "ops-secret-change-me";
 

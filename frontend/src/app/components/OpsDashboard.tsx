@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Activity, Server, Users, Building2, DollarSign,
   AlertTriangle, CheckCircle, Clock, RefreshCw,
-  BarChart2, Shield, Loader2, AlertCircle, LogIn
+  BarChart2, Shield, Loader2, AlertCircle, LogIn, Search
 } from "lucide-react";
 
 const OPS_API = "/api/ops";
@@ -52,6 +52,12 @@ const TICKET_STATUS_OPTIONS = [
   { value: "in_progress", label: "In Progress" },
   { value: "resolved", label: "Resolved" },
 ];
+
+const TICKET_VIEW_OPTIONS = [
+  { value: "unresolved", label: "Unresolved" },
+  { value: "history", label: "History" },
+  { value: "all", label: "All" },
+] as const;
 
 const TICKET_PRIORITY_STYLES: Record<string, string> = {
   critical: "bg-red-900/50 text-red-400",
@@ -159,6 +165,7 @@ const OpsLogin = ({ onAuth }: { onAuth: (user: any) => void }) => {
 
 // ─── Ops Nav ─────────────────────────────────────────────────────────────────
 type OpsPage = "health" | "ml" | "businesses" | "tickets" | "revenue";
+type OpsAuthState = "checking" | "authed" | "guest";
 
 const OPS_NAV: { id: OpsPage; label: string; icon: any }[] = [
   { id: "health",     label: "System Health",  icon: Activity },
@@ -292,6 +299,8 @@ const TicketsPage = () => {
   const [savingId, setSavingId] = useState<number | null>(null);
   const [saveError, setSaveError] = useState("");
   const [saveSuccessId, setSaveSuccessId] = useState<number | null>(null);
+  const [ticketView, setTicketView] = useState<"unresolved" | "history" | "all">("unresolved");
+  const [subjectQuery, setSubjectQuery] = useState("");
   const priorityStyle = TICKET_PRIORITY_STYLES;
 
   useEffect(() => {
@@ -339,12 +348,86 @@ const TicketsPage = () => {
     }
   };
 
+  const normalizedSubjectQuery = subjectQuery.trim().toLowerCase();
+  const subjectOptions = Array.from(
+    new Set(
+      (tickets || [])
+        .map((ticket: any) => typeof ticket.subject === "string" ? ticket.subject.trim() : "")
+        .filter(Boolean)
+    )
+  ).sort((a, b) => a.localeCompare(b));
+
+  const filteredTickets = (tickets || []).filter((ticket: any) => {
+    const matchesView =
+      ticketView === "all"
+        ? true
+        : ticketView === "history"
+          ? ticket.status === "resolved"
+          : ticket.status !== "resolved";
+
+    const matchesSubject =
+      !normalizedSubjectQuery ||
+      String(ticket.subject || "").toLowerCase().includes(normalizedSubjectQuery);
+
+    return matchesView && matchesSubject;
+  });
+
+  const hasActiveFilters = ticketView !== "all" || normalizedSubjectQuery.length > 0;
+
   return (
     <div className="space-y-6">
       <div className="bg-slate-800 rounded-2xl border border-slate-700">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-          <h2 className="font-bold text-white">Support Tickets</h2>
+          <div>
+            <h2 className="font-bold text-white">Support Tickets</h2>
+            <div className="text-xs text-slate-500 mt-1">
+              Showing {filteredTickets.length} of {(tickets || []).length} tickets
+            </div>
+          </div>
           <button onClick={reload} className="text-slate-400 hover:text-indigo-400"><RefreshCw className="w-4 h-4" /></button>
+        </div>
+        <div className="px-6 py-4 border-b border-slate-700/70">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="flex flex-wrap gap-2">
+              {TICKET_VIEW_OPTIONS.map((option) => {
+                const active = ticketView === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => setTicketView(option.value)}
+                    className={`px-3 py-2 rounded-xl text-sm font-semibold transition-colors ${
+                      active
+                        ? "bg-indigo-600 text-white"
+                        : "bg-slate-900 text-slate-300 border border-slate-700 hover:border-slate-500"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="w-full xl:w-[340px]">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                Filter By Subject
+              </label>
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  list="ops-ticket-subjects"
+                  value={subjectQuery}
+                  onChange={(e) => setSubjectQuery(e.target.value)}
+                  placeholder="Search or select a subject"
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-900 text-white rounded-xl text-sm outline-none border border-slate-600 focus:border-indigo-500 transition-colors"
+                />
+                <datalist id="ops-ticket-subjects">
+                  {subjectOptions.map((subject) => (
+                    <option key={subject} value={subject} />
+                  ))}
+                </datalist>
+              </div>
+            </div>
+          </div>
         </div>
         {saveError && (
           <div className="mx-6 mt-4 rounded-xl border border-red-800/50 bg-red-950/30 px-4 py-3 text-sm text-red-300">
@@ -355,7 +438,11 @@ const TicketsPage = () => {
           <div className="flex flex-col items-center py-12 gap-2"><AlertCircle className="w-5 h-5 text-red-500" /><button onClick={reload} className="text-indigo-400 text-xs">Retry</button></div>
         ) : !(tickets || []).length ? (
           <p className="text-slate-500 text-sm text-center py-12">No support tickets found.</p>
-        ) : (tickets || []).map((t: any) => (
+        ) : !filteredTickets.length ? (
+          <p className="text-slate-500 text-sm text-center py-12">
+            {hasActiveFilters ? "No tickets match the current filters." : "No support tickets found."}
+          </p>
+        ) : filteredTickets.map((t: any) => (
           <div key={t.id} className="px-6 py-5 space-y-4" style={{ borderBottom: "1px solid rgba(148,163,184,0.1)" }}>
             <div className="flex items-start gap-4">
             <div className={`mt-0.5 ${t.status === "resolved" ? "text-emerald-500" : "text-amber-500"}`}>
@@ -660,14 +747,49 @@ const RevenuePage = () => {
 
 // ─── Ops Shell ───────────────────────────────────────────────────────────────
 export default function OpsDashboard() {
-  const [authed, setAuthed] = useState(() => !!sessionStorage.getItem("shiftsync_ops_token"));
+  const [authState, setAuthState] = useState<OpsAuthState>(() =>
+    sessionStorage.getItem("shiftsync_ops_token") ? "checking" : "guest"
+  );
   const [activePage, setActivePage] = useState<OpsPage>("health");
 
-  if (!authed) return <OpsLogin onAuth={() => { setAuthed(true); }} />;
+  useEffect(() => {
+    if (authState !== "checking") return;
+
+    let cancelled = false;
+
+    opsFetch("/auth/me")
+      .then(() => {
+        if (!cancelled) {
+          setAuthState("authed");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          sessionStorage.removeItem("shiftsync_ops_token");
+          setAuthState("guest");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authState]);
+
+  if (authState === "checking") {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0f172a" }}>
+        <Loader2 className="w-6 h-6 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  if (authState !== "authed") {
+    return <OpsLogin onAuth={() => { setAuthState("checking"); }} />;
+  }
 
   const handleLogout = () => {
     sessionStorage.removeItem("shiftsync_ops_token");
-    setAuthed(false);
+    setAuthState("guest");
   };
 
   const renderPage = () => {

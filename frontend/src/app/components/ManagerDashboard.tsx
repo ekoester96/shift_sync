@@ -1014,10 +1014,11 @@ const EmployeesPage = () => {
 // Approvals 
 const ApprovalsPage = () => {
   const th = useT();
-  const [statusFilter, setStatusFilter] = useState<string>("pending");
+  const [showSwapHistory, setShowSwapHistory] = useState(false);
+  const [showPtoHistory, setShowPtoHistory] = useState(false);
 
-  const { data: swaps, loading: ls, error: es, reload: rs } = useFetch<any[]>(`/manager/swaps?status=${statusFilter}`, [statusFilter]);
-  const { data: ptos, loading: lp, error: ep, reload: rp } = useFetch<any[]>(`/manager/pto?status=${statusFilter}`, [statusFilter]);
+  const { data: swaps, loading: ls, error: es, reload: rs } = useFetch<any[]>("/manager/swaps");
+  const { data: ptos, loading: lp, error: ep, reload: rp } = useFetch<any[]>("/manager/pto");
 
   const handleAction = async (endpoint: string, id: number | string, status: string, reloadFn: () => void) => {
     try {
@@ -1026,21 +1027,43 @@ const ApprovalsPage = () => {
     } catch (e: any) { alert(e.message); }
   };
 
-  const tabs = ["pending", "approved", "denied", "all"];
+  const filterRequests = (items: any[] | null, showHistory: boolean) =>
+    (items || []).filter((req: any) => showHistory ? req.status !== "pending" : req.status === "pending");
 
-  const ApprovalCard = ({ title, items, loading, error, onRetry, nameKey, subKey, endpoint, reload }: any) => (
+  const ApprovalCard = ({
+    title,
+    items,
+    loading,
+    error,
+    onRetry,
+    nameKey,
+    subKey,
+    endpoint,
+    reload,
+    showHistory,
+    onToggleHistory,
+  }: any) => (
     <div className="rounded-2xl" style={{ background: th.cardBg, border: `1px solid ${th.border}` }}>
       <div className="flex items-center justify-between px-6 py-4" style={{ borderBottom: `1px solid ${th.borderLight}` }}>
         <h2 className="font-bold" style={{ color: th.textPrimary }}>{title}</h2>
-        {!loading && !error && (
-          <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-            style={{ background: th.accentBg, color: th.accent }}>
-            {(items || []).length} {statusFilter === "all" ? "total" : statusFilter}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {!loading && !error && (
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full"
+              style={{ background: th.accentBg, color: th.accent }}>
+              {(items || []).length} {showHistory ? "history" : "pending"}
+            </span>
+          )}
+          <button
+            onClick={onToggleHistory}
+            className="text-xs font-semibold hover:opacity-70"
+            style={{ color: th.accent }}
+          >
+            {showHistory ? "Hide History" : "History"}
+          </button>
+        </div>
       </div>
       {loading ? <Spinner /> : error ? <ErrorMsg message={error} onRetry={onRetry} /> : !items?.length ? (
-        <EmptyState message={`No ${statusFilter} requests`} />
+        <EmptyState message={showHistory ? "No completed requests" : "No pending requests"} />
       ) : items.map((req: any) => (
         <div key={req.id} className="px-6 py-4 space-y-3" style={{ borderBottom: `1px solid ${th.borderLight}` }}>
           <div className="flex items-start justify-between">
@@ -1077,24 +1100,18 @@ const ApprovalsPage = () => {
     </div>
   );
 
+  const swapItems = filterRequests(swaps, showSwapHistory);
+  const ptoItems = filterRequests(ptos, showPtoHistory);
+
   return (
     <div className="p-8 space-y-6">
-      {/* Status Tabs */}
-      <div className="flex items-center gap-1 rounded-xl p-1 w-fit" style={{ background: th.cardBg, border: `1px solid ${th.border}` }}>
-        {tabs.map(tab => (
-          <button key={tab} onClick={() => setStatusFilter(tab)}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize"
-            style={tab === statusFilter ? { background: th.accent, color: "#fff" } : { color: th.textSecond }}>
-            {tab}
-          </button>
-        ))}
-      </div>
-
       <div className="grid grid-cols-2 gap-6">
-        <ApprovalCard title="Shift Swap Requests" items={swaps} loading={ls} error={es} onRetry={rs}
-          nameKey="requesting_employee_name" subKey="shift_detail" endpoint="swaps" reload={rs} />
-        <ApprovalCard title="PTO Requests" items={ptos} loading={lp} error={ep} onRetry={rp}
-          nameKey="employee_name" subKey="pto_detail" endpoint="pto" reload={rp} />
+        <ApprovalCard title="Shift Swap Requests" items={swapItems} loading={ls} error={es} onRetry={rs}
+          nameKey="requesting_employee_name" subKey="shift_detail" endpoint="swaps" reload={rs}
+          showHistory={showSwapHistory} onToggleHistory={() => setShowSwapHistory((prev) => !prev)} />
+        <ApprovalCard title="PTO Requests" items={ptoItems} loading={lp} error={ep} onRetry={rp}
+          nameKey="employee_name" subKey="pto_detail" endpoint="pto" reload={rp}
+          showHistory={showPtoHistory} onToggleHistory={() => setShowPtoHistory((prev) => !prev)} />
       </div>
     </div>
   );

@@ -156,10 +156,10 @@ router.patch("/tickets/:id", async (req: OpsRequest, res: Response): Promise<voi
 
     await pool.query(
       `UPDATE support_tickets
-       SET status = $2,
+       SET status = $2::varchar,
            resolution_notes = $3,
            updated_at = NOW(),
-           resolved_at = CASE WHEN $2 = 'resolved' THEN NOW() ELSE NULL END
+           resolved_at = CASE WHEN $2::varchar = 'resolved' THEN NOW() ELSE NULL END
        WHERE ticket_id = $1`,
       [ticketId, parsed.data.status, resolutionNotes]
     );
@@ -193,9 +193,29 @@ router.patch("/tickets/:id", async (req: OpsRequest, res: Response): Promise<voi
     );
 
     res.json(result.rows[0]);
-  } catch (err) {
+  } catch (err: unknown) {
     console.error("Ops ticket update error:", err);
-    res.status(500).json({ error: "Failed to update ticket." });
+
+    const message = err instanceof Error ? err.message : "Failed to update ticket.";
+    const detail =
+      typeof err === "object" && err !== null && "detail" in err && typeof (err as { detail?: unknown }).detail === "string"
+        ? (err as { detail: string }).detail
+        : undefined;
+    const code =
+      typeof err === "object" && err !== null && "code" in err && typeof (err as { code?: unknown }).code === "string"
+        ? (err as { code: string }).code
+        : undefined;
+    const constraint =
+      typeof err === "object" && err !== null && "constraint" in err && typeof (err as { constraint?: unknown }).constraint === "string"
+        ? (err as { constraint: string }).constraint
+        : undefined;
+
+    res.status(500).json({
+      error: message,
+      detail,
+      code,
+      constraint,
+    });
   }
 });
 

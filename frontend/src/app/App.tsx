@@ -37,11 +37,7 @@ function AppRoutes() {
       />
       <Route
         path="/ops"
-        element={
-          <ProtectedRoute>
-            <OpsDashboard />
-          </ProtectedRoute>
-        }
+        element={<OpsDashboard />}
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

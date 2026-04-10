@@ -25,6 +25,11 @@ const formatClockWindow = (value?: string | null) =>
     ? new Date(value).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
     : "";
 
+const formatHours = (value: unknown, fallback = "0.00") => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric.toFixed(2) : fallback;
+};
+
 const getClockSummary = (shift: any) => {
   if (shift.has_clocked_out) {
     const timing = shift.clock_out_status === "early"
@@ -104,8 +109,8 @@ const MyShiftsPage = () => {
           <div key={i} className="rounded-2xl p-5 animate-pulse h-28" style={{ background: th.cardBg, border: `1px solid ${th.border}` }} />
         )) : es ? <div className="col-span-4"><ErrorMsg message={es} onRetry={rs} /></div> : (
           <>
-            <StatCard label="Shifts This Week" value={stats?.shifts_this_week} icon={Calendar} accent sub={stats?.hours_this_week ? `${stats.hours_this_week} hrs total` : undefined} />
-            <StatCard label="PTO Available" value={ptoBalance?.balance ? `${ptoBalance.balance} hrs` : "—"} icon={FileText} sub={ptoBalance?.pending > 0 ? `${ptoBalance.pending} hrs pending` : undefined} />
+            <StatCard label="Shifts This Week" value={stats?.shifts_this_week} icon={Calendar} accent sub={stats?.hours_this_week != null ? `${formatHours(stats.hours_this_week)} hrs total` : undefined} />
+            <StatCard label="PTO Available" value={ptoBalance?.balance != null ? `${formatHours(ptoBalance.balance)} hrs` : "—"} icon={FileText} sub={Number(ptoBalance?.pending) > 0 ? `${formatHours(ptoBalance.pending)} hrs pending` : undefined} />
             <StatCard label="Pending PTO" value={stats?.pending_pto} icon={Clock} />
             <StatCard label="Swap Requests" value={stats?.pending_swaps} icon={ArrowLeftRight} sub="Pending approval" />
           </>
@@ -344,13 +349,13 @@ const SchedulePage = () => {
         {view === "week" && weekData && (
           <div className="flex items-center gap-2 text-sm rounded-xl px-3 py-2"
             style={{ background: th.cardBg, color: th.textSecond, border: `1px solid ${th.border}` }}>
-            <Clock className="w-4 h-4" /><span>{weekData.total_hours} hrs this week</span>
+            <Clock className="w-4 h-4" /><span>{formatHours(weekData.total_hours)} hrs this week</span>
           </div>
         )}
         {view === "month" && monthData && (
           <div className="flex items-center gap-2 text-sm rounded-xl px-3 py-2"
             style={{ background: th.cardBg, color: th.textSecond, border: `1px solid ${th.border}` }}>
-            <Clock className="w-4 h-4" /><span>{monthData.total_hours} hrs this month</span>
+            <Clock className="w-4 h-4" /><span>{formatHours(monthData.total_hours)} hrs this month</span>
           </div>
         )}
       </div>
@@ -423,7 +428,7 @@ const SchedulePage = () => {
                         {info && (
                           <>
                             <div className="text-xs font-semibold" style={{ color: th.accent }}>{info.shift_count} shift{info.shift_count > 1 ? "s" : ""}</div>
-                            <div className="text-xs" style={{ color: th.textThird }}>{Number(info.total_hours).toFixed(1)} hrs</div>
+                            <div className="text-xs" style={{ color: th.textThird }}>{formatHours(info.total_hours)} hrs</div>
                           </>
                         )}
                       </button>
@@ -606,24 +611,24 @@ const PTOPage = () => {
           <>
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: th.accent }}>{ptoBalance?.balance || "0"}</div>
+                <div className="text-2xl font-bold" style={{ color: th.accent }}>{formatHours(ptoBalance?.balance)}</div>
                 <div className="text-xs mt-1" style={{ color: th.textSecond }}>Hours Available</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: th.textPrimary }}>{ptoBalance?.used_this_year || "0"}</div>
+                <div className="text-2xl font-bold" style={{ color: th.textPrimary }}>{formatHours(ptoBalance?.used_this_year)}</div>
                 <div className="text-xs mt-1" style={{ color: th.textSecond }}>Used This Year</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold" style={{ color: "#d97706" }}>{ptoBalance?.pending || "0"}</div>
+                <div className="text-2xl font-bold" style={{ color: "#d97706" }}>{formatHours(ptoBalance?.pending)}</div>
                 <div className="text-xs mt-1" style={{ color: th.textSecond }}>Pending</div>
               </div>
             </div>
-            {ptoBalance?.accrual_rate > 0 && (
+            {Number(ptoBalance?.accrual_rate) > 0 && (
               <div className="rounded-xl p-3" style={{ background: th.accentBg }}>
                 <div className="text-xs font-medium" style={{ color: th.textSecond }}>
-                  Accrual: <span style={{ color: th.accent }}>{ptoBalance.accrual_rate} hrs</span> per hour worked
-                  · <span style={{ color: th.textPrimary }}>{ptoBalance.accrued} hrs</span> accrued from {ptoBalance.hours_worked} hrs worked
-                  {ptoBalance.base_balance > 0 && <> · <span style={{ color: th.textPrimary }}>{ptoBalance.base_balance} hrs</span> starting balance</>}
+                  Accrual: <span style={{ color: th.accent }}>{formatHours(ptoBalance?.accrual_rate)} hrs</span> per hour worked
+                  · <span style={{ color: th.textPrimary }}>{formatHours(ptoBalance?.accrued)} hrs</span> accrued from {formatHours(ptoBalance?.hours_worked)} hrs worked
+                  {Number(ptoBalance?.base_balance) > 0 && <> · <span style={{ color: th.textPrimary }}>{formatHours(ptoBalance?.base_balance)} hrs</span> starting balance</>}
                 </div>
               </div>
             )}

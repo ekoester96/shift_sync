@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import '../config/env';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'shiftsync-dev-secret-change-in-production';
 

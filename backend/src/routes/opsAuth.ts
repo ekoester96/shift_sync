@@ -10,7 +10,6 @@ const router = Router();
 router.post("/login", async (req: Request, res: Response): Promise<void> => {
   try {
     const { username, password } = req.body;
-    console.log("Ops login attempt:", username);
 
     if (!username || !password) {
       res.status(400).json({ error: "Username and password are required." });
@@ -23,18 +22,13 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
     );
 
     const user = result.rows[0];
-    console.log("User found:", !!user);
 
     if (!user) {
       res.status(401).json({ error: "Invalid username or password." });
       return;
     }
 
-    console.log("Hash in DB:", user.password_hash);
-    console.log("Hash length:", user.password_hash?.length);
-
     const match = await bcrypt.compare(password, user.password_hash);
-    console.log("Password match:", match);
 
     if (!match) {
       res.status(401).json({ error: "Invalid username or password." });
